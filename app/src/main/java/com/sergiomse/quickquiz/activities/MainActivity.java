@@ -116,12 +116,11 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
     }
 
     @Override
-    public void onPlayFolderClick(Folder folder) {
+    public void onPlayFolderClick(File folder) {
         Log.d(TAG, "onPlayFolderClick: " + folder.getName());
 
         Intent intent = new Intent(this, ExerciseActivity.class);
-        intent.putExtra("folderName", folder.getName());
-        intent.putExtra("folderId", folder.getId());
+        intent.putExtra("folderPath", folder.getAbsolutePath());
         startActivity(intent);
     }
 

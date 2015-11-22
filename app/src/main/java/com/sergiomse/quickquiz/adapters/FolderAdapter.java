@@ -94,12 +94,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
                 listener.onFolderClick(folderChildren[position]);
             }
         });
-//        holder.playTests.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                listener.onPlayFolderClick(folder.getChildren().get(position));
-//            }
-//        });
+        holder.playTests.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                listener.onPlayFolderClick(folderChildren[position]);
+            }
+        });
     }
 
     @Override
@@ -114,6 +114,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
     public interface OnFolderClickListener {
         void onFolderClick(File folder);
-        void onPlayFolderClick(Folder folder);
+        void onPlayFolderClick(File folder);
     }
 }

@@ -14,11 +14,20 @@ import android.widget.Toast;
 import com.sergiomse.quickquiz.R;
 import com.sergiomse.quickquiz.model.Exercise;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Random;
+
 
 public class ExerciseActivity extends AppCompatActivity {
 
-    private String folderId;
-    private String folderName;
+    private File folder;
+    private Random random = new Random();
 
     private Exercise exercise;
     private ProgressDialog progressDialog;
@@ -33,7 +42,7 @@ public class ExerciseActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("Trng");
+        getSupportActionBar().setTitle("Quick Quiz");
 
         btnNext = (Button) findViewById(R.id.btnNext);
         btnSolve = (Button) findViewById(R.id.btnSolve);
@@ -48,12 +57,82 @@ public class ExerciseActivity extends AppCompatActivity {
         webView.addJavascriptInterface(jsInterface, "jsInterface");
 
         //TODO Disable when release
-        WebView.setWebContentsDebuggingEnabled(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
 
         Intent intent = getIntent();
-        folderId = intent.getStringExtra("folderId");
-        folderName = intent.getStringExtra("folderName");
+        String folderPath = intent.getStringExtra("folderPath");
+        folder = new File(folderPath);
+
+        selectQuestion();
 //        receiveData();
+    }
+
+    private void selectQuestion() {
+        //get all the questions files
+        File questions[] = folder.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isFile();
+            }
+        });
+
+        //get random question
+        int pos = random.nextInt(questions.length);
+
+        //read files file
+        String jsonQuestion  = readTextFile( questions[pos] );
+        String htmlType1     = readTextFileFromAssets( "type1.html" );
+
+        //inject json into html
+        htmlType1 = htmlType1.replaceAll("</head>", "<script>" + jsonQuestion + "</script></head>");
+
+        webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
+        btnSolve.setVisibility(View.VISIBLE);
+    }
+
+    private String readTextFileFromAssets(String file) {
+        return readTextFile(null, file);
+    }
+
+    private String readTextFile(File file) {
+        return readTextFile(file, null);
+    }
+
+    private String readTextFile(File file, String fileInAssets) {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader br = null;
+
+        try {
+            if( fileInAssets == null ) {
+                br = new BufferedReader(new FileReader(file));
+            } else {
+                br = new BufferedReader(new InputStreamReader( getAssets().open( fileInAssets ) ));
+            }
+
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+                sb.append('\n');
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return sb.toString();
     }
 
 //    private void receiveData() {
