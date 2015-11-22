@@ -83,7 +83,7 @@ public class ExerciseActivity extends AppCompatActivity {
 
         //read files file
         String jsonQuestion  = readTextFile( questions[pos] );
-        String htmlType1     = readTextFileFromAssets( "type1.html" );
+        String htmlType1     = readTextFileFromAssets("type1.html");
 
         //inject json into html
         htmlType1 = htmlType1.replaceAll("</head>", "<script>" + jsonQuestion + "</script></head>");
@@ -184,7 +184,7 @@ public class ExerciseActivity extends AppCompatActivity {
 
 
     public void onNext(View view) {
-//        receiveData();
+        selectQuestion();
         btnSolve.setVisibility(View.VISIBLE);
         btnNext.setVisibility(View.GONE);
     }
