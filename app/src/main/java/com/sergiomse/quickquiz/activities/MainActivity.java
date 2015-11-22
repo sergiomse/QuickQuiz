@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -13,14 +14,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.sergiomse.quickquiz.R;
 import com.sergiomse.quickquiz.adapters.FolderAdapter;
 import com.sergiomse.quickquiz.database.QuickQuizDAO;
 import com.sergiomse.quickquiz.model.Folder;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
 
 
 public class MainActivity extends AppCompatActivity implements FolderAdapter.OnFolderClickListener {
@@ -29,7 +30,8 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
 
     private ProgressDialog progressDialog;
-    private Folder folder;
+    private File rootFolder;
+    private File folder;
     private RecyclerView foldersRecyclerView;
 
     @Override
@@ -46,70 +48,47 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         foldersRecyclerView.setLayoutManager(layoutManager);
 
-        folder = QuickQuizDAO.getRootFolder(this);
+        checkRootFolder();
+
+//        folder = QuickQuizDAO.getRootFolder(this);
         FolderAdapter adapter = new FolderAdapter(this, folder, this);
         foldersRecyclerView.setAdapter(adapter);
 
 //        receiveData();
     }
 
-//    private void receiveData() {
-//        RequestQueue queue = Volley.newRequestQueue(this);
-//        String url = Configuration.getInstance().getBaseUrl() + "/folders";
-//
-//        // Request a string response from the provided URL.
-//        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-//            new Response.Listener<String>() {
-//                @Override
-//                public void onResponse(String response) {
-//                    Gson gson = new GsonBuilder().create();
-//                    folder = gson.fromJson(response, Folder.class);
-//
-//                    createParentLinks(folder);
-//
-//                    drawFolders();
-//
-//                    if (progressDialog.isShowing()) {
-//                        progressDialog.dismiss();
-//                    }
-//                }
-//            },
-//
-//            new Response.ErrorListener() {
-//                @Override
-//                public void onErrorResponse(VolleyError error) {
-//
-//                    if (progressDialog.isShowing()) {
-//                        progressDialog.dismiss();
-//                    }
-//                    Toast.makeText(MainActivity.this, "Error " + error, Toast.LENGTH_LONG).show();
-//                }
-//            }
-//        );
-//
-//        progressDialog = ProgressDialog.show(MainActivity.this, "Loading", "Loading...");
-//        // Add the request to the RequestQueue.
-//        queue.add(stringRequest);
-//    }
+    private void checkRootFolder() {
+        if(isExternalStorageWritable()) {
 
-//    private void createParentLinks() {
-//        Folder folder = getRootFolder(this.folder);
-//        if(folder.getChildren() != null) {
-//            for (Folder children : folder.getChildren()) {
-//                children.setParent(folder);
-//                createParentLinks(children);
-//            }
-//        }
-//    }
+            File rootDir = new File(getExternalFilesDir( Environment.DIRECTORY_DOCUMENTS), "QuickQuiz" );
 
-//    private void createParentLinks(Folder folder) {
-//        if(folder.getChildren() != null) {
-//            for (Folder children : folder.getChildren()) {
-//                children.setParent(folder);
-//                createParentLinks(children);
-//            }
-//        }
-//    }
+            if (!rootDir.mkdirs()) {
+                Log.e(TAG, "Directory not created");
+            }
+
+            if( !rootDir.exists() ) {
+                Toast.makeText(this, "No se puede crear el directorio de la aplicación", Toast.LENGTH_LONG).show();
+                rootFolder = null;
+                folder = null;
+            }
+
+            rootFolder = rootDir;
+            folder = rootDir;
+        } else {
+            Toast.makeText(this, "No hay permisos de escritura en la memoria externa", Toast.LENGTH_LONG).show();
+            rootFolder = null;
+            folder = null;
+        }
+    }
+
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
 
     private void drawFolders() {
         FolderAdapter adapter = new FolderAdapter(this, folder, this);
@@ -118,17 +97,18 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
     @Override
     public void onBackPressed() {
-        if(folder.isRoot()) {
+        if(folder.equals(rootFolder)) {
             finish();
             return;
         }
 
-        folder = QuickQuizDAO.getParentFolder(this, folder);
+//        folder = QuickQuizDAO.getParentFolder(this, folder);
+        folder = folder.getParentFile();
         drawFolders();
     }
 
     @Override
-    public void onFolderClick(Folder folder) {
+    public void onFolderClick(File folder) {
         Log.d(TAG, "onFolderClick: " + folder.getName());
 
         this.folder = folder;
@@ -158,13 +138,18 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        Folder folder = new Folder();
-                        folder.setName(((EditText) view.findViewById(R.id.etFolderName)).getText().toString());
-                        folder.setParentId(MainActivity.this.folder.getId());
-                        folder.setIsRoot(false);
+//                        Folder folder = new Folder();
+//                        folder.setName(((EditText) view.findViewById(R.id.etFolderName)).getText().toString());
+//                        folder.setParentId(MainActivity.this.folder.getId());
+//                        folder.setIsRoot(false);
 
-                        QuickQuizDAO.insertFolder(MainActivity.this, folder);
+//                        QuickQuizDAO.insertFolder(MainActivity.this, folder);
 
+                        String name = ((EditText) view.findViewById(R.id.etFolderName)).getText().toString();
+                        File newFolder = new File(MainActivity.this.folder, name);
+                        if(!newFolder.mkdirs()) {
+                            Toast.makeText(MainActivity.this, "No se puede crear el directorio de la aplicación", Toast.LENGTH_LONG).show();
+                        }
                         MainActivity.this.drawFolders();
                     }
                 })

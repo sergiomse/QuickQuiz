@@ -13,6 +13,8 @@ import com.sergiomse.quickquiz.R;
 import com.sergiomse.quickquiz.database.QuickQuizDAO;
 import com.sergiomse.quickquiz.model.Folder;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.util.List;
 
 
@@ -52,15 +54,21 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
 
     private Context context;
-    private Folder folder;
-    private List<Folder> folderChildren;
+    private File folder;
+    private File[] folderChildren;
 //    private Folder folder;
     private OnFolderClickListener listener;
 
-    public FolderAdapter(Context context, Folder folder, OnFolderClickListener listener) {
+    public FolderAdapter(Context context, File folder, OnFolderClickListener listener) {
         this.context = context;
         this.folder = folder;
-        this.folderChildren = QuickQuizDAO.getChildrenFolders(context, folder);
+        this.folderChildren = folder.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isDirectory();
+            }
+        });
+//        this.folderChildren = QuickQuizDAO.getChildrenFolders(context, folder);
         this.listener = listener;
     }
 
@@ -78,12 +86,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
 
-        holder.tvFolderName.setText(folderChildren.get(position).getName());
+        holder.tvFolderName.setText(folderChildren[position].getName());
 
         holder.rootLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onFolderClick(folderChildren.get(position));
+                listener.onFolderClick(folderChildren[position]);
             }
         });
 //        holder.playTests.setOnClickListener(new View.OnClickListener() {
@@ -101,11 +109,11 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
     @Override
     public int getItemCount() {
-        return folderChildren.size();
+        return folderChildren.length;
     }
 
     public interface OnFolderClickListener {
-        void onFolderClick(Folder folder);
+        void onFolderClick(File folder);
         void onPlayFolderClick(Folder folder);
     }
 }
