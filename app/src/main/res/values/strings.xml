@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">QuickQuiz</string>
+    <string name="title_activity_file_chooser">FileChooserActivity</string>
 </resources>

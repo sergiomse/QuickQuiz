@@ -12,16 +12,20 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.sergiomse.quickquiz.R;
+import com.sergiomse.quickquiz.*;
+import com.sergiomse.quickquiz.Package;
 import com.sergiomse.quickquiz.adapters.FolderAdapter;
-import com.sergiomse.quickquiz.database.QuickQuizDAO;
-import com.sergiomse.quickquiz.model.Folder;
+import com.sergiomse.quickquiz.filechooser.FileChooserActivity;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.zip.ZipFile;
 
 
 public class MainActivity extends AppCompatActivity implements FolderAdapter.OnFolderClickListener {
@@ -50,11 +54,8 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
         checkRootFolder();
 
-//        folder = QuickQuizDAO.getRootFolder(this);
         FolderAdapter adapter = new FolderAdapter(this, folder, this);
         foldersRecyclerView.setAdapter(adapter);
-
-//        receiveData();
     }
 
     private void checkRootFolder() {
@@ -102,7 +103,6 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
             return;
         }
 
-//        folder = QuickQuizDAO.getParentFolder(this, folder);
         folder = folder.getParentFile();
         drawFolders();
     }
@@ -126,24 +126,15 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
     public void addFolder(View v) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Get the layout inflater
+
         LayoutInflater inflater = getLayoutInflater();
 
-        // Inflate and set the layout for the dialog
-        // Pass null as the parent view because its going in the dialog layout
         final View view = inflater.inflate(R.layout.dialog_add_folder, null);
         builder.setView(view)
                 // Add action buttons
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-//                        Folder folder = new Folder();
-//                        folder.setName(((EditText) view.findViewById(R.id.etFolderName)).getText().toString());
-//                        folder.setParentId(MainActivity.this.folder.getId());
-//                        folder.setIsRoot(false);
-
-//                        QuickQuizDAO.insertFolder(MainActivity.this, folder);
-
                         String name = ((EditText) view.findViewById(R.id.etFolderName)).getText().toString();
                         File newFolder = new File(MainActivity.this.folder, name);
                         if(!newFolder.mkdirs()) {
@@ -160,52 +151,37 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         builder.create().show();
     }
 
-//    private void saveFolder(Folder folder) {
-//        Folder parentFolder = getRootFolder(folder);
-//        RequestQueue queue = null;
-//        if(Configuration.getInstance().getProxyEnabled()) {
-//            queue = Volley.newRequestQueue(this, new ProxiedHurlStack());
-//        } else {
-//            queue = Volley.newRequestQueue(this);
-//        }
-//        String url = Configuration.getInstance().getBaseUrl() + "/folders";
-//
-//        Gson gson = new Gson();
-//        String jsonBody = gson.toJson(parentFolder, Folder.class);
-//        JsonStringRequest stringRequest = new JsonStringRequest(Request.Method.POST, url, jsonBody,
-//                new Response.Listener<String>() {
-//                    @Override
-//                    public void onResponse(String response) {
-////                        Gson gson = new GsonBuilder().create();
-////
-////                        folder = gson.fromJson(response, Folder.class);
-////
-////                        createParentLinks(folder);
-////
-////                        drawFolders();
-////
-////                        if (progressDialog.isShowing()) {
-////                            progressDialog.dismiss();
-////                        }
-//                    }
-//                },
-//
-//                new Response.ErrorListener() {
-//                    @Override
-//                    public void onErrorResponse(VolleyError error) {
-//
-//                        if (progressDialog.isShowing()) {
-//                            progressDialog.dismiss();
-//                        }
-//                        Toast.makeText(MainActivity.this, "Error " + error, Toast.LENGTH_LONG).show();
-//                    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_add_package:
+                Intent intent = new Intent(this, FileChooserActivity.class);
+                startActivityForResult(intent, 0);
+                //TODO read the package from the file system
+//                try {
+//                    ZipFile zipFile = new ZipFile(new File(Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_DOCUMENTS ), "java.zip") );
+//                    Package.importZipPackage(zipFile, folder);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
 //                }
-//        );
-//
-//        progressDialog = ProgressDialog.show(MainActivity.this, "Loading", "Loading...");
-//        // Add the request to the RequestQueue.
-//        queue.add(stringRequest);
-//    }
+                break;
+        }
+        return true;
+    }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case 0:
 
+        }
+    }
 }

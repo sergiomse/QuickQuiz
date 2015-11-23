@@ -55,7 +55,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
     private Context context;
     private File folder;
-    private File[] folderChildren;
+    private File folderChildren[];
 //    private Folder folder;
     private OnFolderClickListener listener;
 
