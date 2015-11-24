@@ -27,8 +27,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
         private static final String TAG = ViewHolder.class.getSimpleName();
 
-        private OnFolderClickListener listener;
-
         public LinearLayout rootLayout;
         public TextView tvFolderName;
         public ImageView playTests;
@@ -41,14 +39,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
         }
 
-        public void setOnFolderClickListener(OnFolderClickListener listener) {
-            this.listener = listener;
-        }
-//
-//        @Override
-//        public void onClick(View v) {
-//            listener.onThingItemClick((Long) rootLayout.getTag());
-//        }
     }
 
 
@@ -68,7 +58,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
                 return pathname.isDirectory();
             }
         });
-//        this.folderChildren = QuickQuizDAO.getChildrenFolders(context, folder);
         this.listener = listener;
     }
 
@@ -79,7 +68,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
                 .inflate(R.layout.listview_folders, parent, false);
 
         ViewHolder vh = new ViewHolder(v);
-        vh.setOnFolderClickListener(listener);
         return vh;
     }
 
