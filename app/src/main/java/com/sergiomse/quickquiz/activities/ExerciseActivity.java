@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,6 +33,8 @@ import java.util.regex.Pattern;
 
 
 public class ExerciseActivity extends AppCompatActivity {
+
+    private static final String TAG = ExerciseActivity.class.getName();
 
     private File folder;
     private Random random = new Random();
@@ -109,6 +112,8 @@ public class ExerciseActivity extends AppCompatActivity {
         Matcher matcher = questionIdPattern.matcher( jsonQuestion );
         if ( matcher.matches() ) {
             questionId = matcher.group(1).trim();
+        } else {
+            Log.e(TAG, "Question hasn't a proper id: " + jsonQuestion);
         }
 
         //inject json into html
