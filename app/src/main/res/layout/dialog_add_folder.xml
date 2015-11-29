@@ -18,7 +18,9 @@
         android:layout_height="wrap_content"
         android:id="@+id/etFolderName"
         android:textColor="#000"
-        android:hint="Name"/>
+        android:hint="Name"
+        android:maxLines="1"
+        android:singleLine="true"/>
 
 
 </LinearLayout>

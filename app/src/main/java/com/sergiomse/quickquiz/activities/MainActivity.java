@@ -9,6 +9,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.InputFilter;
+import android.text.Spanned;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,6 +27,8 @@ import com.sergiomse.quickquiz.adapters.FolderAdapter;
 import com.sergiomse.quickquiz.filechooser.FileChooserActivity;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements FolderAdapter.OnFolderClickListener {
@@ -95,6 +101,23 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         LayoutInflater inflater = getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_add_folder, null);
+        EditText etFolderName = (EditText) view.findViewById(R.id.etFolderName);
+        InputFilter inputFilter = new InputFilter() {
+
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                for (int i = start; i < end; i++) {
+                    if ( "|\\?*<\":>+[]/".contains( source.subSequence(i, i + 1) )) {
+                        Toast.makeText( MainActivity.this, "No se pueden utilizar los caracteres | \\ ? * < \" : > + [ ] /", Toast.LENGTH_SHORT).show();
+                        return "";
+                    }
+                }
+                return null;
+            }
+        };
+        etFolderName.setFilters(new InputFilter[] { inputFilter });
+
+
         builder.setView(view)
                 // Add action buttons
                 .setPositiveButton("Save", new DialogInterface.OnClickListener() {
