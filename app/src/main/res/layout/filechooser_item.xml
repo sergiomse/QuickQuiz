@@ -16,7 +16,9 @@
         android:textColor="#000"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:gravity="center_vertical"/>
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:ellipsize="end"/>
 
     <View
         android:layout_width="match_parent"

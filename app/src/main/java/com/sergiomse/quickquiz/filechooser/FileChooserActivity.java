@@ -1,33 +1,48 @@
 package com.sergiomse.quickquiz.filechooser;
 
 import android.Manifest;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.sergiomse.quickquiz.Q2Application;
 import com.sergiomse.quickquiz.R;
-import com.sergiomse.quickquiz.adapters.FolderAdapter;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
-import java.util.List;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class FileChooserActivity extends AppCompatActivity implements FileChooserAdapter.OnFileChooserClickListener{
 
     private static final int PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private static final String TAG = FileChooserActivity.class.getSimpleName();
 
     private File currentFolder;
+    private File preferredInstallationPath;
     private RecyclerView filesRecyclerView;
     private TextView tvCurrentFolder;
 
@@ -38,6 +53,9 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Package selector");
+
+        Intent intent = getIntent();
+        preferredInstallationPath = new File( intent.getStringExtra("preferredInstallationPath"));
 
         filesRecyclerView = (RecyclerView) findViewById(R.id.fileChooserRecyclerView);
         tvCurrentFolder = (TextView) findViewById(R.id.currentFolder);
@@ -101,7 +119,7 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
 
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
                 // If request is cancelled, the result arrays are empty.
@@ -122,9 +140,261 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
 
     @Override
     public void onFileClick(File file) {
-        currentFolder = file;
-        updateRecyclerView();
+        if ( file.isDirectory() ) {
+            currentFolder = file;
+            updateRecyclerView();
+        } else {
+            processPackage(file);
+        }
     }
+
+    private void processPackage(File file) {
+        try {
+            ZipFile zipFile = new ZipFile(file);
+            String pckId = getZippedPackageId(zipFile);
+            String path = searchInstalledPackage(pckId);
+            if ( path == null ) {
+                //package not installed yet
+                confirmPackageInstallation( preferredInstallationPath, file );
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void confirmPackageInstallation(File path, final File file) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        LayoutInflater inflater = getLayoutInflater();
+        View customView = inflater.inflate(R.layout.filechooser_confirm, null);
+
+        builder.setTitle("¿Confirmar instalación de paquete?")
+                .setView(customView)
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        installPackage(file);
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
+
+        TextView tvPath = (TextView) customView.findViewById(R.id.path);
+        String appRootDir = ((Q2Application) getApplication()).getAppRootDir().getAbsolutePath();
+        String displayPath = path.getAbsolutePath();
+        if ( displayPath.startsWith(appRootDir) ) {
+            displayPath = displayPath.substring( appRootDir.length() );
+        }
+        if ( displayPath.trim().isEmpty() ) {
+            displayPath = "/";
+        }
+        tvPath.setText( displayPath );
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void installPackage(File zipFile) {
+        String name = zipFile.getName();
+        if ( name.indexOf(".zip") != -1 ) {
+            name = name.substring( 0, name.lastIndexOf('.') );
+        }
+
+        //creating package directory
+        File dstDir = new File( preferredInstallationPath, name + ".pkg");
+        if ( !dstDir.mkdirs() ) {
+            Log.e(TAG, "Directory not created. Maybe it already exists");
+        }
+
+        if (!dstDir.exists()) {
+            Toast.makeText(this, "No se puede crear el directorio del paquete", Toast.LENGTH_LONG).show();
+            return;
+
+        }
+
+        //extract zip file
+        ZipInputStream zis = null;
+        try {
+            zis = new ZipInputStream(new FileInputStream(zipFile));
+            ZipEntry ze;
+            while ((ze = zis.getNextEntry()) != null) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int count;
+                while ((count = zis.read(buffer)) != -1) {
+                    baos.write(buffer, 0, count);
+                }
+                String filename = ze.getName();
+                byte[] bytes = baos.toByteArray();
+
+                FileOutputStream stream = new FileOutputStream( new File(dstDir, filename) );
+                try {
+                    stream.write(bytes);
+                } finally {
+                    if ( stream != null ) {
+                        stream.close();
+                    }
+                }
+            }
+
+        } catch (FileNotFoundException e) {
+            Log.d(TAG, e.getMessage());
+
+        } catch (IOException e) {
+            Log.d(TAG, e.getMessage());
+
+        } finally {
+            if ( zis != null ) {
+                try {
+                    zis.close();
+                } catch (IOException e) {
+                    Log.d(TAG, e.getMessage());
+                }
+            }
+        }
+
+    }
+
+    private String searchInstalledPackage(String pckId) {
+        if ( isAvailableRootFolder() ) {
+            File rootDir = new File(getExternalFilesDir("Documents"), "QuickQuiz");
+            File installedPackage = searchForPackageRecursive(rootDir, pckId);
+        }
+        return null;
+    }
+
+    private File searchForPackageRecursive(File dir, String id) {
+        File subdirs[] = dir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return file.isDirectory() && !file.getName().trim().endsWith(".pkg");
+            }
+        });
+
+        for ( File subdir : subdirs ) {
+            File installed = searchForPackageRecursive(subdir, id);
+            if ( installed != null ) {
+                return installed;
+            }
+        }
+
+        File packages[]  = dir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return file.isDirectory() && file.getName().trim().endsWith(".pkg");
+            }
+        });
+
+        for ( File pkg : packages ) {
+            String installedId = getInstalledPackageId(pkg);
+            if ( installedId.equals(id) ) {
+                return pkg;
+            }
+        }
+
+        return null;
+    }
+
+    private String getInstalledPackageId(File pkg) {
+        String id = null;
+        BufferedReader br = null;
+
+        try {
+
+            br = new BufferedReader(new FileReader(new File(pkg, ".metadata")));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                String fields[] = line.split(":", 2);
+                if ( fields.length == 2 ) {
+                    if ( fields[0].trim().equals("id") ) {
+                        id = fields[1];
+                        break;
+                    }
+                }
+            }
+            br.close();
+        }
+
+        catch (IOException e) {
+            Log.d(TAG, e.getMessage());
+
+        } finally {
+            try {
+                if ( br != null ) {
+                    br.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return id;
+    }
+
+    private boolean isAvailableRootFolder() {
+        if (isExternalStorageWritable()) {
+
+            File rootDir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "QuickQuiz");
+
+            if (!rootDir.mkdirs()) {
+                Log.e(TAG, "Directory not created");
+            }
+
+            if (!rootDir.exists()) {
+                Toast.makeText(this, "No se puede crear el directorio de la aplicación", Toast.LENGTH_LONG).show();
+                return false;
+            }
+
+            return true;
+
+        } else {
+            Toast.makeText(this, "No hay permisos de escritura en la memoria externa", Toast.LENGTH_LONG).show();
+            return false;
+
+        }
+    }
+
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    private String getZippedPackageId(ZipFile zipFile) throws IOException {
+        String metadataContent = readZipFile(zipFile, ".metadata");
+        String lines[] = metadataContent.split("\\n");
+        for (String line : lines) {
+            String fields[] = line.split(":", 2);
+            if(fields.length == 2) {
+                if(fields[0].trim().equals("id")) {
+                    return fields[1].trim();
+                }
+            }
+        }
+
+        return "";
+    }
+
+    private String readZipFile(ZipFile zipFile, String entryName) throws IOException {
+        ZipEntry entry = zipFile.getEntry( entryName );
+        BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream( entry ));
+
+        byte buffer[] = new byte[1024];
+        StringBuilder sb = new StringBuilder();
+        int count;
+        while( (count = bis.read(buffer)) != -1 ) {
+            sb.append(new String(buffer, 0, count));
+        }
+
+        return sb.toString();
+    }
+
 
     public void upFolder(View view) {
         if(currentFolder.getParentFile() != null) {

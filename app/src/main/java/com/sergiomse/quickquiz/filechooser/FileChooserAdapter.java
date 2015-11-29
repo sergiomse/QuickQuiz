@@ -1,6 +1,7 @@
 package com.sergiomse.quickquiz.filechooser;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,10 +10,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.sergiomse.quickquiz.R;
-import com.sergiomse.quickquiz.adapters.FolderAdapter;
 
 import java.io.File;
-import java.io.FileFilter;
 
 /**
  * Created by sergiomse@gmail.com on 23/11/2015.
@@ -63,6 +62,11 @@ public class FileChooserAdapter extends RecyclerView.Adapter<FileChooserAdapter.
 
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
+        if (childrenFiles[position].isDirectory() ) {
+            holder.fileChooserRootLayout.setBackgroundColor(Color.YELLOW);
+        } else {
+            holder.fileChooserRootLayout.setBackgroundColor(Color.CYAN);
+        }
         holder.tvFileName.setText(childrenFiles[position].getName());
         holder.file = childrenFiles[position];
         holder.fileChooserRootLayout.setOnClickListener(new View.OnClickListener() {

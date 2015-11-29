@@ -1,6 +1,5 @@
 package com.sergiomse.quickquiz.activities;
 
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,22 +17,18 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.sergiomse.quickquiz.*;
-import com.sergiomse.quickquiz.Package;
+import com.sergiomse.quickquiz.Q2Application;
+import com.sergiomse.quickquiz.R;
 import com.sergiomse.quickquiz.adapters.FolderAdapter;
 import com.sergiomse.quickquiz.filechooser.FileChooserActivity;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.zip.ZipFile;
 
 
 public class MainActivity extends AppCompatActivity implements FolderAdapter.OnFolderClickListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-
-    private ProgressDialog progressDialog;
     private File rootFolder;
     private File folder;
     private RecyclerView foldersRecyclerView;
@@ -52,42 +47,11 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         foldersRecyclerView.setLayoutManager(layoutManager);
 
-        checkRootFolder();
+        rootFolder = ((Q2Application) getApplication()).getAppRootDir();
+        folder = rootFolder;
 
         FolderAdapter adapter = new FolderAdapter(this, folder, this);
         foldersRecyclerView.setAdapter(adapter);
-    }
-
-    private void checkRootFolder() {
-        if(isExternalStorageWritable()) {
-
-            File rootDir = new File(getExternalFilesDir( Environment.DIRECTORY_DOCUMENTS), "QuickQuiz" );
-
-            if (!rootDir.mkdirs()) {
-                Log.e(TAG, "Directory not created");
-            }
-
-            if( !rootDir.exists() ) {
-                Toast.makeText(this, "No se puede crear el directorio de la aplicación", Toast.LENGTH_LONG).show();
-                rootFolder = null;
-                folder = null;
-            }
-
-            rootFolder = rootDir;
-            folder = rootDir;
-        } else {
-            Toast.makeText(this, "No hay permisos de escritura en la memoria externa", Toast.LENGTH_LONG).show();
-            rootFolder = null;
-            folder = null;
-        }
-    }
-
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
     }
 
 
@@ -108,19 +72,29 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
     }
 
     @Override
-    public void onFolderClick(File folder) {
-        Log.d(TAG, "onFolderClick: " + folder.getName());
+    public void onFolderClick(FolderAdapter.FolderItem fi) {
+        Log.d(TAG, "onFolderClick: " + fi.getFile().getName());
 
-        this.folder = folder;
-        drawFolders();
+        switch ( fi.getType() ) {
+            case FolderAdapter.FolderItem.FOLDER_TYPE_DIRECTORY:
+                this.folder = fi.getFile();
+                drawFolders();
+                break;
+
+            case FolderAdapter.FolderItem.FOLDER_TYPE_PACKAGE:
+                Intent intent = new Intent(this, ExerciseActivity.class);
+                intent.putExtra("folderPath", fi.getFile().getAbsolutePath());
+                startActivity(intent);
+                break;
+        }
     }
 
     @Override
-    public void onPlayFolderClick(File folder) {
-        Log.d(TAG, "onPlayFolderClick: " + folder.getName());
+    public void onPlayFolderClick(FolderAdapter.FolderItem folder) {
+        Log.d(TAG, "onPlayFolderClick: " + folder.getFile().getName());
 
         Intent intent = new Intent(this, ExerciseActivity.class);
-        intent.putExtra("folderPath", folder.getAbsolutePath());
+        intent.putExtra("folderPath", folder.getFile().getAbsolutePath());
         startActivity(intent);
     }
 
@@ -164,14 +138,8 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         switch (item.getItemId()) {
             case R.id.action_add_package:
                 Intent intent = new Intent(this, FileChooserActivity.class);
+                intent.putExtra("preferredInstallationPath", folder.getAbsolutePath());
                 startActivityForResult(intent, 0);
-                //TODO read the package from the file system
-//                try {
-//                    ZipFile zipFile = new ZipFile(new File(Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_DOCUMENTS ), "java.zip") );
-//                    Package.importZipPackage(zipFile, folder);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
                 break;
         }
         return true;
@@ -184,4 +152,5 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
         }
     }
+
 }

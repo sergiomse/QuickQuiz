@@ -40,7 +40,8 @@
             android:textColor="@color/black"
             android:layout_toLeftOf="@+id/btn_folder_up"
             android:layout_marginRight="8dp"
-            android:ellipsize="start"/>
+            android:ellipsize="start"
+            android:maxLines="1"/>
 
         <ImageButton
             android:layout_width="48dp"

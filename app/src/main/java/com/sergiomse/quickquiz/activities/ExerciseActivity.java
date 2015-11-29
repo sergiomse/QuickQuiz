@@ -73,8 +73,8 @@ public class ExerciseActivity extends AppCompatActivity {
         //get all the questions files
         File questions[] = folder.listFiles(new FileFilter() {
             @Override
-            public boolean accept(File pathname) {
-                return pathname.isFile();
+            public boolean accept(File file) {
+                return file.isFile() && file.getName().trim().endsWith(".json");
             }
         });
 
@@ -86,7 +86,7 @@ public class ExerciseActivity extends AppCompatActivity {
         String htmlType1     = readTextFileFromAssets("type1.html");
 
         //inject json into html
-        htmlType1 = htmlType1.replaceAll("</head>", "<script>" + jsonQuestion + "</script></head>");
+        htmlType1 = htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
 
         webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
         btnSolve.setVisibility(View.VISIBLE);

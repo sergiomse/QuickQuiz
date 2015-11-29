@@ -10,7 +10,9 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:name=".Q2Application">
+
         <activity
             android:name=".activities.MainActivity"
             android:label="@string/app_name">
@@ -20,11 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity android:name=".activities.ExerciseActivity"/>
+
         <activity
             android:name=".filechooser.FileChooserActivity"
             android:label="@string/title_activity_file_chooser"
             android:theme="@style/AppTheme"/>
+
     </application>
 
 </manifest>
