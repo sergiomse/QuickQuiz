@@ -289,50 +289,13 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
         });
 
         for ( File pkg : packages ) {
-            String installedId = getInstalledPackageId(pkg);
+            String installedId = ((Q2Application) getApplication()).getInstalledPackageId(pkg);
             if ( installedId.equals(id) ) {
                 return pkg;
             }
         }
 
         return null;
-    }
-
-    private String getInstalledPackageId(File pkg) {
-        String id = null;
-        BufferedReader br = null;
-
-        try {
-
-            br = new BufferedReader(new FileReader(new File(pkg, ".metadata")));
-            String line;
-
-            while ((line = br.readLine()) != null) {
-                String fields[] = line.split(":", 2);
-                if ( fields.length == 2 ) {
-                    if ( fields[0].trim().equals("id") ) {
-                        id = fields[1];
-                        break;
-                    }
-                }
-            }
-            br.close();
-        }
-
-        catch (IOException e) {
-            Log.d(TAG, e.getMessage());
-
-        } finally {
-            try {
-                if ( br != null ) {
-                    br.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return id;
     }
 
     private boolean isAvailableRootFolder() {

@@ -7,4 +7,10 @@
         android:title="Add package"
         app:showAsAction="ifRoom"
         />
+
+    <item android:id="@+id/action_note_list"
+        android:icon="@drawable/img_pin_list"
+        android:title="View note list"
+        app:showAsAction="ifRoom"
+        />
 </menu>

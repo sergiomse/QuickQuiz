@@ -135,11 +135,17 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intent = null;
         switch (item.getItemId()) {
             case R.id.action_add_package:
-                Intent intent = new Intent(this, FileChooserActivity.class);
+                intent = new Intent(this, FileChooserActivity.class);
                 intent.putExtra("preferredInstallationPath", folder.getAbsolutePath());
                 startActivityForResult(intent, 0);
+                break;
+
+            case R.id.action_note_list:
+                intent = new Intent(this, NoteListActivity.class);
+                startActivity(intent);
                 break;
         }
         return true;

@@ -6,12 +6,17 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.sergiomse.quickquiz.Q2Application;
 import com.sergiomse.quickquiz.R;
+import com.sergiomse.quickquiz.database.QuickQuizDAO;
+import com.sergiomse.quickquiz.filechooser.FileChooserActivity;
 import com.sergiomse.quickquiz.model.Exercise;
 
 import java.io.BufferedReader;
@@ -22,6 +27,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class ExerciseActivity extends AppCompatActivity {
@@ -29,8 +36,12 @@ public class ExerciseActivity extends AppCompatActivity {
     private File folder;
     private Random random = new Random();
 
-    private Exercise exercise;
-    private ProgressDialog progressDialog;
+    private String packageId;
+    private String questionId;
+    private boolean hasNote;
+
+    private final static Pattern questionIdPattern = Pattern.compile("(?s)^.*\"id\"\\s*:\\s*(\\d+).*$");
+
     private Button btnSolve;
     private Button btnNext;
     private WebView webView;
@@ -65,8 +76,17 @@ public class ExerciseActivity extends AppCompatActivity {
         String folderPath = intent.getStringExtra("folderPath");
         folder = new File(folderPath);
 
+        packageId = ((Q2Application) getApplication()).getInstalledPackageId( new File( folderPath ) );
+
         selectQuestion();
 //        receiveData();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        refreshNoteIcon();
     }
 
     private void selectQuestion() {
@@ -82,8 +102,14 @@ public class ExerciseActivity extends AppCompatActivity {
         int pos = random.nextInt(questions.length);
 
         //read files file
-        String jsonQuestion  = readTextFile( questions[pos] );
+        String jsonQuestion  = readTextFile(questions[pos]);
         String htmlType1     = readTextFileFromAssets("type1.html");
+
+        //TODO improve parsing json
+        Matcher matcher = questionIdPattern.matcher( jsonQuestion );
+        if ( matcher.matches() ) {
+            questionId = matcher.group(1).trim();
+        }
 
         //inject json into html
         htmlType1 = htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
@@ -135,58 +161,17 @@ public class ExerciseActivity extends AppCompatActivity {
         return sb.toString();
     }
 
-//    private void receiveData() {
-//        RequestQueue queue = Volley.newRequestQueue(this);
-//        String url = Configuration.getInstance().getBaseUrl() + "/folder/" + folderId + "/exercise";
-//
-//        // Request a string response from the provided URL.
-//        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-//            new Response.Listener<String>() {
-//                @Override
-//                public void onResponse(String response) {
-//                    Gson gson = new GsonBuilder().create();
-//                    exercise = gson.fromJson(response, Exercise.class);
-//
-//                    if (progressDialog.isShowing()) {
-//                        progressDialog.dismiss();
-//                    }
-//
-//                    drawHtml();
-//                }
-//            },
-//
-//            new Response.ErrorListener() {
-//                @Override
-//                public void onErrorResponse(VolleyError error) {
-//
-//                    if (progressDialog.isShowing()) {
-//                        progressDialog.dismiss();
-//                    }
-//                    Toast.makeText(ExerciseActivity.this, "Error " + error, Toast.LENGTH_LONG).show();
-//                }
-//            }
-//        );
-//
-//        progressDialog = ProgressDialog.show(ExerciseActivity.this, "Loading", "Loading...");
-//        // Add the request to the RequestQueue.
-//        queue.add(stringRequest);
-//    }
-
-    private void drawHtml() {
-//        if(exercise != null) {
-//            ExerciseHtmlComposer exerciseHtmlComposer = new ExerciseHtmlComposer(exercise);
-//            webView.loadDataWithBaseURL("file:///android_asset/", exerciseHtmlComposer.toHtml(), "text/html", "utf-8", null);
-//            btnSolve.setVisibility(View.VISIBLE);
-//        } else {
-//            Toast.makeText(this, "There is no data in folder " + folderName, Toast.LENGTH_LONG).show();
-//        }
-    }
-
-
     public void onNext(View view) {
         selectQuestion();
+        refreshNoteIcon();
         btnSolve.setVisibility(View.VISIBLE);
         btnNext.setVisibility(View.GONE);
+    }
+
+    private void refreshNoteIcon() {
+        String note = QuickQuizDAO.getNote(this, packageId, questionId);
+        hasNote = note != null;
+        invalidateOptionsMenu();
     }
 
     public void onSolve(View view) {
@@ -214,4 +199,33 @@ public class ExerciseActivity extends AppCompatActivity {
 //            });
         }
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.exercise_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if ( hasNote ) {
+            menu.findItem(R.id.action_add_note).setIcon(R.drawable.img_pin_on);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_add_note:
+                Intent intent = new Intent(this, NoteActivity.class);
+                intent.putExtra("packageId", packageId);
+                intent.putExtra("questionId", questionId);
+                startActivity( intent );
+                break;
+        }
+        return true;
+    }
+
 }

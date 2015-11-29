@@ -6,7 +6,10 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 
 /**
  * Created by sergiomse@gmail.com on 29/11/2015.
@@ -42,5 +45,42 @@ public class Q2Application extends Application{
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
         return Environment.MEDIA_MOUNTED.equals(state);
+    }
+
+    public String getInstalledPackageId(File pkg) {
+        String id = null;
+        BufferedReader br = null;
+
+        try {
+
+            br = new BufferedReader(new FileReader(new File(pkg, ".metadata")));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                String fields[] = line.split(":", 2);
+                if ( fields.length == 2 ) {
+                    if ( fields[0].trim().equals("id") ) {
+                        id = fields[1].trim();
+                        break;
+                    }
+                }
+            }
+            br.close();
+        }
+
+        catch (IOException e) {
+            Log.d(TAG, e.getMessage());
+
+        } finally {
+            try {
+                if ( br != null ) {
+                    br.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return id;
     }
 }

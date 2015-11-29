@@ -3,7 +3,10 @@ package com.sergiomse.quickquiz.database;
 import android.content.Context;
 
 import com.sergiomse.quickquiz.activities.MainActivity;
+import com.sergiomse.quickquiz.activities.NoteActivity;
+import com.sergiomse.quickquiz.activities.NoteListActivity;
 import com.sergiomse.quickquiz.model.Folder;
+import com.sergiomse.quickquiz.model.Note;
 
 import java.util.List;
 
@@ -36,5 +39,39 @@ public class QuickQuizDAO {
         QuickQuizDB db = new QuickQuizDB(context);
         db.insertFolder(folder);
         db.cleanup();
+    }
+
+    public static String getNote(Context context, String packageId, String questionId) {
+        QuickQuizDB db = new QuickQuizDB(context);
+        String note = db.getNote(packageId, questionId);
+        db.cleanup();
+
+        return note;
+    }
+
+    public static void insertNote(Context context, String packageId, String questionId, String note) {
+        QuickQuizDB db = new QuickQuizDB(context);
+        db.insertNote(packageId, questionId, note);
+        db.cleanup();
+    }
+
+    public static void deleteNote(Context context, String packageId, String questionId) {
+        QuickQuizDB db = new QuickQuizDB(context);
+        db.deleteNote(packageId, questionId);
+        db.cleanup();
+    }
+
+    public static void updateNote(Context context, String packageId, String questionId, String note) {
+        QuickQuizDB db = new QuickQuizDB(context);
+        db.updateNote(packageId, questionId, note);
+        db.cleanup();
+    }
+
+    public static List<Note> getAllNotes(Context context) {
+        QuickQuizDB db = new QuickQuizDB(context);
+        List<Note> noteList = db.getAllNote();
+        db.cleanup();
+
+        return noteList;
     }
 }
