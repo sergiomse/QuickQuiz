@@ -89,15 +89,6 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         }
     }
 
-    @Override
-    public void onPlayFolderClick(FolderAdapter.FolderItem folder) {
-        Log.d(TAG, "onPlayFolderClick: " + folder.getFile().getName());
-
-        Intent intent = new Intent(this, ExerciseActivity.class);
-        intent.putExtra("folderPath", folder.getFile().getAbsolutePath());
-        startActivity(intent);
-    }
-
     public void addFolder(View v) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -139,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements FolderAdapter.OnF
         switch (item.getItemId()) {
             case R.id.action_add_package:
                 intent = new Intent(this, FileChooserActivity.class);
-                intent.putExtra("preferredInstallationPath", folder.getAbsolutePath());
+                intent.putExtra("installationPath", folder.getAbsolutePath());
                 startActivityForResult(intent, 0);
                 break;
 

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -23,14 +24,12 @@ import com.sergiomse.quickquiz.Q2Application;
 import com.sergiomse.quickquiz.R;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -42,7 +41,7 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
     private static final String TAG = FileChooserActivity.class.getSimpleName();
 
     private File currentFolder;
-    private File preferredInstallationPath;
+    private File installationPath;
     private RecyclerView filesRecyclerView;
     private TextView tvCurrentFolder;
 
@@ -55,7 +54,7 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
         getSupportActionBar().setTitle("Package selector");
 
         Intent intent = getIntent();
-        preferredInstallationPath = new File( intent.getStringExtra("preferredInstallationPath"));
+        installationPath = new File( intent.getStringExtra("installationPath"));
 
         filesRecyclerView = (RecyclerView) findViewById(R.id.fileChooserRecyclerView);
         tvCurrentFolder = (TextView) findViewById(R.id.currentFolder);
@@ -152,28 +151,39 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
         try {
             ZipFile zipFile = new ZipFile(file);
             String pckId = getZippedPackageId(zipFile);
-            String path = searchInstalledPackage(pckId);
-            if ( path == null ) {
-                //package not installed yet
-                confirmPackageInstallation( preferredInstallationPath, file );
-            }
+            File installedPackageDir = searchInstalledPackage(pckId);
+
+            confirmPackageInstallation(installedPackageDir, file);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    private void confirmPackageInstallation(File path, final File file) {
+
+    private void confirmPackageInstallation(@Nullable final File installedPackageDir, final File file) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
         LayoutInflater inflater = getLayoutInflater();
         View customView = inflater.inflate(R.layout.filechooser_confirm, null);
 
-        builder.setTitle("¿Confirmar instalación de paquete?")
+        String title = (installedPackageDir == null ? "¿Confirmar instalación de paquete?"
+                            : "¿Confirmar actualización de paquete ya existente?");
+
+        builder.setTitle(title)
                 .setView(customView)
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        installPackage(file);
+                        if (installedPackageDir != null) {
+                            //package already existing
+                            //remove before reinstall
+                            removeDirRecursively( installedPackageDir );
+                            installedPackageDir.delete();
+                            installPackage(file, installedPackageDir.getParentFile());
+                        } else {
+                            installPackage(file, installationPath);
+                        }
                     }
                 })
                 .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
@@ -183,28 +193,49 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
                 });
 
         TextView tvPath = (TextView) customView.findViewById(R.id.path);
+
+        //remove the beginning of the path
         String appRootDir = ((Q2Application) getApplication()).getAppRootDir().getAbsolutePath();
-        String displayPath = path.getAbsolutePath();
-        if ( displayPath.startsWith(appRootDir) ) {
-            displayPath = displayPath.substring( appRootDir.length() );
+        String displayPath = (installedPackageDir != null ? installedPackageDir.getAbsolutePath() .trim()
+                                : installationPath.getAbsolutePath().trim());
+
+        if (displayPath.startsWith(appRootDir)) {
+            displayPath = displayPath.substring(appRootDir.length());
         }
-        if ( displayPath.trim().isEmpty() ) {
+
+        //if the package already exists remove the *.pkg from the end of the string
+        if ( installedPackageDir != null && displayPath.endsWith(".pkg")) {
+            displayPath = displayPath.substring(0, displayPath.lastIndexOf('/'));
+        }
+
+        if (displayPath.trim().isEmpty()) {
             displayPath = "/";
         }
+
         tvPath.setText( displayPath );
 
         AlertDialog dialog = builder.create();
         dialog.show();
     }
 
-    private void installPackage(File zipFile) {
+    private void removeDirRecursively(File file) {
+        File children[] = file.listFiles();
+        for (File child : children) {
+            if ( child.isDirectory() ) {
+                removeDirRecursively( child );
+            }
+            child.delete();
+        }
+    }
+
+    private void installPackage(File zipFile, File destination) {
         String name = zipFile.getName();
         if ( name.indexOf(".zip") != -1 ) {
             name = name.substring( 0, name.lastIndexOf('.') );
         }
 
         //creating package directory
-        File dstDir = new File( preferredInstallationPath, name + ".pkg");
+        File dstDir = new File(destination, name + ".pkg");
         if ( !dstDir.mkdirs() ) {
             Log.e(TAG, "Directory not created. Maybe it already exists");
         }
@@ -258,10 +289,11 @@ public class FileChooserActivity extends AppCompatActivity implements FileChoose
 
     }
 
-    private String searchInstalledPackage(String pckId) {
+    private File searchInstalledPackage(String pckId) {
         if ( isAvailableRootFolder() ) {
             File rootDir = new File(getExternalFilesDir("Documents"), "QuickQuiz");
             File installedPackage = searchForPackageRecursive(rootDir, pckId);
+            return installedPackage;
         }
         return null;
     }

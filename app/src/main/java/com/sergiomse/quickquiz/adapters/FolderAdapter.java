@@ -33,14 +33,12 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
         public LinearLayout rootLayout;
         public ImageView ivIcon;
         public TextView tvFolderName;
-        public ImageView playTests;
 
         public ViewHolder(View itemView) {
             super(itemView);
             rootLayout      = (LinearLayout) itemView;
             ivIcon          = (ImageView) itemView.findViewById(R.id.ivIcon);
             tvFolderName    = (TextView) itemView.findViewById(R.id.tvFolderName);
-            playTests       = (ImageView) itemView.findViewById(R.id.ivPlayTests);
 
         }
 
@@ -149,12 +147,6 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
                 listener.onFolderClick( fi );
             }
         });
-        holder.playTests.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                listener.onPlayFolderClick( fi );
-            }
-        });
     }
 
     @Override
@@ -169,6 +161,5 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
 
     public interface OnFolderClickListener {
         void onFolderClick(FolderItem folder);
-        void onPlayFolderClick(FolderItem folder);
     }
 }
