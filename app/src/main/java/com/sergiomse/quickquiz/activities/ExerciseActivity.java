@@ -1,5 +1,6 @@
 package com.sergiomse.quickquiz.activities;
 
+import android.animation.Animator;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Build;
@@ -10,8 +11,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.sergiomse.quickquiz.Q2Application;
@@ -47,6 +52,7 @@ public class ExerciseActivity extends AppCompatActivity {
 
     private Button btnSolve;
     private Button btnNext;
+    private RelativeLayout webviewLayout;
     private WebView webView;
 
     @Override
@@ -60,11 +66,17 @@ public class ExerciseActivity extends AppCompatActivity {
 
         btnNext = (Button) findViewById(R.id.btnNext);
         btnSolve = (Button) findViewById(R.id.btnSolve);
+        webviewLayout = (RelativeLayout) findViewById(R.id.webviewLayout);
 
         btnNext.setVisibility(View.GONE);
         btnSolve.setVisibility(View.GONE);
 
-        webView = (WebView) findViewById(R.id.webview);
+        webView = new WebView(this);
+        webviewLayout.addView(webView);
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        webView.setLayoutParams(params);
+
         webView.getSettings().setJavaScriptEnabled(true);
 
         JavascriptInterface jsInterface = new JavascriptInterface(this);
@@ -81,7 +93,7 @@ public class ExerciseActivity extends AppCompatActivity {
 
         packageId = ((Q2Application) getApplication()).getInstalledPackageId( new File( folderPath ) );
 
-        selectQuestion();
+        selectQuestion(webView);
 //        receiveData();
     }
 
@@ -92,7 +104,66 @@ public class ExerciseActivity extends AppCompatActivity {
         refreshNoteIcon();
     }
 
-    private void selectQuestion() {
+    private void selectQuestion(WebView webView) {
+        String htmlType1 = prepareHtml();
+
+        webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
+        btnSolve.setVisibility(View.VISIBLE);
+    }
+
+    private void createNewQuestion() {
+        String htmlType1 = prepareHtml();
+
+        WebView webView = new WebView(this);
+        webviewLayout.addView(webView, 0);
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        webView.setLayoutParams(params);
+
+        webView.getSettings().setJavaScriptEnabled(true);
+
+        JavascriptInterface jsInterface = new JavascriptInterface(this);
+        webView.addJavascriptInterface(jsInterface, "jsInterface");
+
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                ExerciseActivity.this.webView.animate()
+                        .translationX(-ExerciseActivity.this.webView.getWidth())
+                        .setDuration(250)
+                        .setListener(new Animator.AnimatorListener() {
+                            @Override
+                            public void onAnimationStart(Animator animation) {
+
+                            }
+
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                ExerciseActivity.this.webView = (WebView) ExerciseActivity.this.webviewLayout.getChildAt(0);
+                                ExerciseActivity.this.webviewLayout.removeViewAt(1);
+
+                                refreshNoteIcon();
+                                btnSolve.setVisibility(View.VISIBLE);
+                                btnNext.setVisibility(View.GONE);
+                            }
+
+                            @Override
+                            public void onAnimationCancel(Animator animation) {
+
+                            }
+
+                            @Override
+                            public void onAnimationRepeat(Animator animation) {
+
+                            }
+                        });
+            }
+        });
+
+        webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
+    }
+
+    private String prepareHtml() {
         //get all the questions files
         File questions[] = folder.listFiles(new FileFilter() {
             @Override
@@ -109,7 +180,7 @@ public class ExerciseActivity extends AppCompatActivity {
         String htmlType1     = readTextFileFromAssets("type1.html");
 
         //TODO improve parsing json
-        Matcher matcher = questionIdPattern.matcher( jsonQuestion );
+        Matcher matcher = questionIdPattern.matcher(jsonQuestion);
         if ( matcher.matches() ) {
             questionId = matcher.group(1).trim();
         } else {
@@ -117,11 +188,9 @@ public class ExerciseActivity extends AppCompatActivity {
         }
 
         //inject json into html
-        htmlType1 = htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
-
-        webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
-        btnSolve.setVisibility(View.VISIBLE);
+        return htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
     }
+
 
     private String readTextFileFromAssets(String file) {
         return readTextFile(null, file);
@@ -167,11 +236,10 @@ public class ExerciseActivity extends AppCompatActivity {
     }
 
     public void onNext(View view) {
-        selectQuestion();
-        refreshNoteIcon();
-        btnSolve.setVisibility(View.VISIBLE);
-        btnNext.setVisibility(View.GONE);
+        btnNext.setEnabled(false);
+        createNewQuestion();
     }
+
 
     private void refreshNoteIcon() {
         String note = QuickQuizDAO.getNote(this, packageId, questionId);
@@ -182,6 +250,7 @@ public class ExerciseActivity extends AppCompatActivity {
     public void onSolve(View view) {
         webView.loadUrl("javascript:showSolution();");
         btnSolve.setVisibility(View.GONE);
+        btnNext.setEnabled(true);
         btnNext.setVisibility(View.VISIBLE);
     }
 

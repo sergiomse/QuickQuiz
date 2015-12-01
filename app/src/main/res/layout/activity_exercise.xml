@@ -40,15 +40,20 @@
 
     </LinearLayout>
 
-    <WebView
+
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/webview"
+        android:id="@+id/webviewLayout"
         android:layout_above="@+id/buttonLayout"
         android:layout_below="@+id/toolbar">
 
-    </WebView>
+<!--        <WebView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/webview"/>-->
 
+    </RelativeLayout>
 
 
 </RelativeLayout>
