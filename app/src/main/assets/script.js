@@ -1,7 +1,14 @@
 var solved = false;
+var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 function drawData() {
     document.getElementById('question').innerHTML = "<b>" + data.id + "</b> " + data.question;
+
+
+    //set position of letters in options
+    for (var i = 0; i < data.options.length && i < letters.length; i++) {
+        data.options[i].letterPos = i;
+    }
 
     //randomize order options
     var resultOptions = [];
@@ -19,9 +26,14 @@ function drawData() {
     var li = '';
     var solutionIndices = '';
     for(var i = 0; i < data.options.length; i++) {
-        li += '<li class="option" onclick="selectOption(this, ' + i + ')">';
+        li += '<li class="option" onclick="selectOption(this, ' + i + ')" style="margin: 10px; padding: 5px; font-family: Arial;">';
+        li += '<div style="float: left; background-color: #48F; color: white; padding: 2px; margin-right: 6px; margin-bottom: 6px; width: 15px; height: 15px; text-align: center; font-weight: bold;">';
+        li += letters[i];
+        li += '</div>';
         li += data.options[i].text;
         li += '</li>';
+
+        data.options[i].letter = letters[i];
 
         if(data.options[i].correct == true) {
             solutionIndices += i + ',';
@@ -34,6 +46,12 @@ function drawData() {
         solutionIndices = solutionIndices.substring(0, solutionIndices.length - 1);
     }
     document.getElementById('solution-container').dataset.index = solutionIndices;
+
+    //replace template ${} with the custom letter
+    for(var i = 0; i < data.options.length; i++) {
+        var regexp = new RegExp('\\$\\{' + data.options[i].letterPos + '\\}', "g");
+        data.solution = data.solution.replace(regexp, '<span style="  background-color: #48F; color: white; padding: 0 4px 0 4px; font-weight: bold;">' + data.options[i].letter + '</span>');
+    }
 
     //draw solution
     document.getElementById('solution').innerHTML = data.solution;
