@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -46,7 +47,9 @@ public class ExerciseActivity extends AppCompatActivity {
 
     private String packageId;
     private String questionId;
+    private int questionPosition;
     private boolean hasNote;
+    private String jsonState;
 
     private final static Pattern questionIdPattern = Pattern.compile("(?s)^.*\"id\"\\s*:\\s*(\\d+).*$");
 
@@ -87,13 +90,17 @@ public class ExerciseActivity extends AppCompatActivity {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 
-        Intent intent = getIntent();
-        String folderPath = intent.getStringExtra("folderPath");
-        folder = new File(folderPath);
+        if (savedInstanceState == null) {
+            Intent intent = getIntent();
+            String folderPath = intent.getStringExtra("folderPath");
+            folder = new File(folderPath);
+        } else {
+            folder = new File( savedInstanceState.getString("folderName"));
+        }
 
-        packageId = ((Q2Application) getApplication()).getInstalledPackageId( new File( folderPath ) );
+        packageId = ((Q2Application) getApplication()).getInstalledPackageId( folder );
 
-        selectQuestion(webView);
+        selectQuestion(webView, savedInstanceState);
 //        receiveData();
     }
 
@@ -104,15 +111,15 @@ public class ExerciseActivity extends AppCompatActivity {
         refreshNoteIcon();
     }
 
-    private void selectQuestion(WebView webView) {
-        String htmlType1 = prepareHtml();
+    private void selectQuestion(WebView webView, Bundle savedInstanceState) {
+        String htmlType1 = prepareHtml(savedInstanceState);
 
         webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
         btnSolve.setVisibility(View.VISIBLE);
     }
 
     private void createNewQuestion() {
-        String htmlType1 = prepareHtml();
+        String htmlType1 = prepareHtml(null);
 
         WebView webView = new WebView(this);
         webviewLayout.addView(webView, 0);
@@ -163,7 +170,7 @@ public class ExerciseActivity extends AppCompatActivity {
         webView.loadDataWithBaseURL("file:///android_asset/", htmlType1, "text/html", "utf-8", null);
     }
 
-    private String prepareHtml() {
+    private String prepareHtml(Bundle savedInstanceState) {
         //get all the questions files
         File questions[] = folder.listFiles(new FileFilter() {
             @Override
@@ -172,23 +179,38 @@ public class ExerciseActivity extends AppCompatActivity {
             }
         });
 
-        //get random question
-        int pos = random.nextInt(questions.length);
+        String jsonQuestion = "";
+        if (savedInstanceState == null) {
+            //get random question
+            questionPosition = random.nextInt(questions.length);
 
-        //read files file
-        String jsonQuestion  = readTextFile(questions[pos]);
-        String htmlType1     = readTextFileFromAssets("type1.html");
+            //read files file
+            jsonQuestion = readTextFile(questions[questionPosition]);
 
-        //TODO improve parsing json
-        Matcher matcher = questionIdPattern.matcher(jsonQuestion);
-        if ( matcher.matches() ) {
-            questionId = matcher.group(1).trim();
+            //TODO improve parsing json
+            Matcher matcher = questionIdPattern.matcher(jsonQuestion);
+            if (matcher.matches()) {
+                questionId = matcher.group(1).trim();
+            } else {
+                Log.e(TAG, "Question hasn't a proper id: " + jsonQuestion);
+            }
+
         } else {
-            Log.e(TAG, "Question hasn't a proper id: " + jsonQuestion);
+            questionPosition = savedInstanceState.getInt("questionPosition");
+            jsonQuestion = readTextFile(questions[questionPosition]);
+            questionId = savedInstanceState.getString("questionId");
+            jsonState = savedInstanceState.getString("jsonState");
+
         }
 
+        String htmlType1 = readTextFileFromAssets("type1.html");
+
         //inject json into html
-        return htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
+        if (savedInstanceState == null) {
+            return htmlType1.replace("</head>", "<script>" + jsonQuestion + "</script></head>");
+        } else {
+            return htmlType1.replace("</head>", "<script>state = " + jsonState + "</script><script>" + jsonQuestion + "</script></head>");
+        }
     }
 
 
@@ -218,8 +240,6 @@ public class ExerciseActivity extends AppCompatActivity {
                 sb.append('\n');
             }
 
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -248,7 +268,7 @@ public class ExerciseActivity extends AppCompatActivity {
     }
 
     public void onSolve(View view) {
-        webView.loadUrl("javascript:showSolution();");
+        webView.loadUrl("javascript:showSolution(true);");
         btnSolve.setVisibility(View.GONE);
         btnNext.setEnabled(true);
         btnNext.setVisibility(View.VISIBLE);
@@ -263,14 +283,8 @@ public class ExerciseActivity extends AppCompatActivity {
         }
 
         @android.webkit.JavascriptInterface
-        public void check(boolean result) {
-
-//            activity.btnSolve.post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    activity.buttonLayout.setVisibility(View.VISIBLE);
-//                }
-//            });
+        public void setState(String jsonState) {
+            activity.jsonState = jsonState;
         }
     }
 
@@ -302,4 +316,13 @@ public class ExerciseActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString("folderName", folder.getAbsolutePath());
+        outState.putInt("questionPosition", questionPosition);
+        outState.putString("questionId", questionId);
+        outState.putString("jsonState", jsonState);
+
+        super.onSaveInstanceState(outState);
+    }
 }
