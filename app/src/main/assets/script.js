@@ -59,7 +59,7 @@ function writeInitialData() {
     }
     ulOptions.innerHTML = li;
 
-    //save solution indices
+    //write solution indices as dataset
     if(solutionIndices.charAt(solutionIndices.length - 1) == ',') {
         solutionIndices = solutionIndices.substring(0, solutionIndices.length - 1);
     }
@@ -76,6 +76,7 @@ function writeInitialData() {
 
     //save state;
     state.options = data.options;
+    state.solutionIndices = solutionIndices;
     state.solved = false;
     saveState();
 }
@@ -87,7 +88,6 @@ function writeWithStateData() {
     //draw options
     var ulOptions = document.getElementById('options');
     var li = '';
-    var solutionIndices = '';
     for(var i = 0; i < state.options.length; i++) {
         if (state.options[i].selected === true) {
             li += '<li class="option" onclick="selectOption(this, ' + i + ')" style="margin: 10px; padding: 5px; font-family: Arial; background-color: #FDD54A;">';
@@ -99,18 +99,11 @@ function writeWithStateData() {
         li += '</div>';
         li += state.options[i].text;
         li += '</li>';
-
-        if(state.options[i].correct == true) {
-            solutionIndices += i + ',';
-        }
     }
     ulOptions.innerHTML = li;
 
-    //save solution indices
-    if(solutionIndices.charAt(solutionIndices.length - 1) == ',') {
-        solutionIndices = solutionIndices.substring(0, solutionIndices.length - 1);
-    }
-    document.getElementById('solution-container').dataset.index = solutionIndices;
+    //write solution indices as dataset
+    document.getElementById('solution-container').dataset.index = state.solutionIndices;
 
     //replace template ${} with the custom letter
     for(var i = 0; i < state.options.length; i++) {
