@@ -13,7 +13,9 @@ function writeData() {
 
 
 function writeInitialData() {
-    document.getElementById('question').innerHTML = "<b>" + data.id + "</b> " + data.question;
+
+    document.getElementById('name').innerHTML = data.name;
+    document.getElementById('question').innerHTML = data.question;
 
 
     //set position of letters in options
@@ -79,7 +81,8 @@ function writeInitialData() {
 }
 
 function writeWithStateData() {
-    document.getElementById('question').innerHTML = "<b>" + data.id + "</b> " + data.question;
+    document.getElementById('name').innerHTML = data.name;
+    document.getElementById('question').innerHTML = data.question;
 
     //draw options
     var ulOptions = document.getElementById('options');
